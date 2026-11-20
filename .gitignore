@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+build/
+dist/
+*.pkg
+testdata/
+keys/
+*.zip
+*.iso
+*.cso
+output/
+extracted/
+*-out/

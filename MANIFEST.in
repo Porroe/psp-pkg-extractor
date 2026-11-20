@@ -1,0 +1,4 @@
+include LICENSE THIRD_PARTY.md README.md
+recursive-include fixtures *.md
+recursive-include tests *.py
+include .github/workflows/tests.yml
