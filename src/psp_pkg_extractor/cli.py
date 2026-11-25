@@ -16,12 +16,11 @@ def main(argv: Optional[list[str]] = None) -> int:
     extract.add_argument('package')
     extract.add_argument('--output', required=True)
     extract.add_argument('--force', action='store_true', help='Replace existing regular files')
-    extract.add_argument('--baseline', action='store_true', help='Extract only ISO/CSO, CONTENT.DAT, and PSP-KEY.EDAT')
     args = parser.parse_args(argv)
     try:
         result = None
         if args.command == 'extract':
-            result = extract_pkg(args.package, args.output, force=args.force, baseline=args.baseline)
+            result = extract_pkg(args.package, args.output, force=args.force)
             info = result.info
         else:
             info = inspect_pkg(args.package)

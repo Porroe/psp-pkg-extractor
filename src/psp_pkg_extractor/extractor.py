@@ -46,7 +46,7 @@ def _check_destination(output: Path) -> None:
 
 
 def extract_pkg(path: Union[str, os.PathLike[str]], output: Union[str, os.PathLike[str]], *, force: bool = False,
-                format: str = "tree", baseline: bool = False) -> ExtractionResult:
+                format: str = "tree") -> ExtractionResult:
     """Extract transport-decrypted bytes; preserve inner encrypted payloads.
 
     Existing output is merged in staging. Force replaces conflicting regular
@@ -73,14 +73,7 @@ def extract_pkg(path: Union[str, os.PathLike[str]], output: Union[str, os.PathLi
             game_title = sfo_title(title_data) or game_title
         if format == "iso" and not any(i.path.casefold().endswith(('.iso', '.cso')) for i in info.items):
             raise ExtractionError("This PKG has no standalone ISO/CSO entry; converting embedded EBOOT.PBP/NPUMDIMG requires PSP-specific conversion")
-        def selected(item):
-            if not baseline:
-                return True
-            p = item.path.casefold()
-            return p.endswith(('.iso', '.cso')) or p.endswith('/content.dat') or p.endswith('/psp-key.edat') or p.endswith('/eboot.pbp')
-
-        selected_items = tuple(i for i in info.items if selected(i))
-        for item in selected_items:
+        for item in info.items:
             if _license(item.path):
                 raise ExtractionError(f"Refusing to create or modify a license file: {item.path}")
         _check_destination(output)
@@ -96,7 +89,7 @@ def extract_pkg(path: Union[str, os.PathLike[str]], output: Union[str, os.PathLi
                     if key in existing:
                         raise ExtractionError(f"Ambiguous existing path: {rel}")
                     existing[key] = (rel, p.is_dir())
-        for item in selected_items:
+        for item in info.items:
             parts = item.path.split('/')
             for n in range(1, len(parts) + 1):
                 rel = '/'.join(parts[:n])
@@ -165,4 +158,4 @@ def extract_pkg(path: Union[str, os.PathLike[str]], output: Union[str, os.PathLi
         finally:
             if stage.exists():
                 shutil.rmtree(stage)
-        return ExtractionResult(info, output, tuple(output / i.path for i in selected_items), info.total_bytes)
+        return ExtractionResult(info, output, tuple(output / i.path for i in info.items), info.total_bytes)
