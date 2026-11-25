@@ -4,6 +4,10 @@ CTR removes the PKG transport layer only; it does not decrypt NPDRM payloads.
 This table-based implementation is not designed for secret-key applications.
 """
 from functools import lru_cache
+try:
+    from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+except ImportError:
+    Cipher = algorithms = modes = None
 
 PSP_KEY = bytes.fromhex("07f2c68290b50d2c33818d709b60e62b")
 PS3_KEY = bytes.fromhex("2e7b71d7c9c9a14ea3221f188828b8f8")
@@ -32,6 +36,19 @@ def _sbox(x: int) -> int:
 _S = bytes(_sbox(x) for x in range(256))
 _INV_S = bytes(next(i for i, value in enumerate(_S) if value == x) for x in range(256))
 _X2 = bytes(_mul(x, 2) for x in range(256))
+_M9 = bytes(_mul(x, 9) for x in range(256))
+_M11 = bytes(_mul(x, 11) for x in range(256))
+_M13 = bytes(_mul(x, 13) for x in range(256))
+_M14 = bytes(_mul(x, 14) for x in range(256))
+_X3 = bytes(_mul(x, 3) for x in range(256))
+
+def _word(a, b, c, d):
+    return (a << 24) | (b << 16) | (c << 8) | d
+
+_TE0 = tuple(_word(_X2[_S[x]], _S[x], _S[x], _X3[_S[x]]) for x in range(256))
+_TE1 = tuple(_word(_X3[_S[x]], _X2[_S[x]], _S[x], _S[x]) for x in range(256))
+_TE2 = tuple(_word(_S[x], _X3[_S[x]], _X2[_S[x]], _S[x]) for x in range(256))
+_TE3 = tuple(_word(_S[x], _S[x], _X3[_S[x]], _X2[_S[x]]) for x in range(256))
 
 
 @lru_cache(maxsize=8)
@@ -54,6 +71,8 @@ def aes128_encrypt_block(key: bytes, block: bytes) -> bytes:
     """Encrypt one 16-byte block (FIPS 197)."""
     if len(block) != 16:
         raise ValueError("AES requires a 16-byte block")
+    if Cipher is not None:
+        return Cipher(algorithms.AES(key), modes.ECB()).encryptor().update(block)
     keys = _expand(key)
     state = [a ^ b for a, b in zip(block, keys[0])]
     for r in range(1, 11):
@@ -82,10 +101,8 @@ def aes128_decrypt_block(key: bytes, block: bytes) -> bytes:
             for c in range(0, 16, 4):
                 a, b, d, e = state[c:c + 4]
                 state[c:c + 4] = [
-                    _mul(a, 14) ^ _mul(b, 11) ^ _mul(d, 13) ^ _mul(e, 9),
-                    _mul(a, 9) ^ _mul(b, 14) ^ _mul(d, 11) ^ _mul(e, 13),
-                    _mul(a, 13) ^ _mul(b, 9) ^ _mul(d, 14) ^ _mul(e, 11),
-                    _mul(a, 11) ^ _mul(b, 13) ^ _mul(d, 9) ^ _mul(e, 14),
+                    _M14[a] ^ _M11[b] ^ _M13[d] ^ _M9[e], _M9[a] ^ _M14[b] ^ _M11[d] ^ _M13[e],
+                    _M13[a] ^ _M9[b] ^ _M14[d] ^ _M11[e], _M11[a] ^ _M13[b] ^ _M9[d] ^ _M14[e],
                 ]
     return bytes(state)
 
@@ -97,13 +114,19 @@ def aes_ctr_xor(key: bytes, iv: bytes, data: bytes, offset: int = 0) -> bytes:
     base = int.from_bytes(iv, "big")
     if data and base + (offset + len(data) - 1) // 16 >= 1 << 128:
         raise ValueError("CTR counter overflow")
+    if Cipher is not None and data:
+        start = base + offset // 16
+        skip = offset % 16
+        padded = (b'\0' * skip) + data
+        stream = Cipher(algorithms.AES(key), modes.CTR(start.to_bytes(16, 'big'))).encryptor().update(padded)
+        return stream[skip:]
     out = bytearray(len(data))
     pos = 0
     while pos < len(data):
-        block, skip = divmod(offset + pos, 16)
-        stream = aes128_encrypt_block(key, (base + block).to_bytes(16, "big"))
-        n = min(16 - skip, len(data) - pos)
-        for i in range(n):
+        chunk = min(len(data) - pos, 16 * 64)
+        first, skip = divmod(offset + pos, 16)
+        stream = b''.join(aes128_encrypt_block(key, (base + first + i).to_bytes(16, 'big')) for i in range((skip + chunk + 15) // 16))
+        for i in range(chunk):
             out[pos + i] = data[pos + i] ^ stream[skip + i]
-        pos += n
+        pos += chunk
     return bytes(out)

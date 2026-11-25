@@ -13,6 +13,8 @@ python -m pip install .
 python -m psp_pkg_extractor inspect game.pkg
 python -m psp_pkg_extractor extract game.pkg --output extracted/
 python -m psp_pkg_extractor extract game.pkg --output extracted/ --force
+# Baseline mode skips unrelated PKG entries:
+python -m psp_pkg_extractor extract game.pkg --output baseline/ --baseline
 # The installed console command also works:
 psp-pkg-extractor inspect game.pkg
 ```
