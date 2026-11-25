@@ -138,8 +138,8 @@ def extract_pkg(path: Union[str, os.PathLike[str]], output: Union[str, os.PathLi
                     target.write_bytes(extract_psp_key(payload))
                 else:
                     with target.open('wb') as dest:
-                        for offset in range(0, item.size, 64 * 1024):
-                            size = min(64 * 1024, item.size - offset)
+                        for offset in range(0, item.size, 1024 * 1024):
+                            size = min(1024 * 1024, item.size - offset)
                             dest.write(decrypt_at(f, info.header, item.data_offset + offset, size, item.key))
             _check_destination(output)
             if output.exists():

@@ -8,6 +8,10 @@ try:
     from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 except ImportError:
     Cipher = algorithms = modes = None
+try:
+    from Crypto.Cipher import AES as _PyCryptoAES
+except ImportError:
+    _PyCryptoAES = None
 
 PSP_KEY = bytes.fromhex("07f2c68290b50d2c33818d709b60e62b")
 PS3_KEY = bytes.fromhex("2e7b71d7c9c9a14ea3221f188828b8f8")
@@ -73,6 +77,8 @@ def aes128_encrypt_block(key: bytes, block: bytes) -> bytes:
         raise ValueError("AES requires a 16-byte block")
     if Cipher is not None:
         return Cipher(algorithms.AES(key), modes.ECB()).encryptor().update(block)
+    if _PyCryptoAES is not None:
+        return _PyCryptoAES.new(key, _PyCryptoAES.MODE_ECB).encrypt(block)
     keys = _expand(key)
     state = [a ^ b for a, b in zip(block, keys[0])]
     for r in range(1, 11):
@@ -90,6 +96,10 @@ def aes128_decrypt_block(key: bytes, block: bytes) -> bytes:
     """Decrypt one 16-byte AES-128 block (FIPS 197)."""
     if len(block) != 16:
         raise ValueError("AES requires a 16-byte block")
+    if Cipher is not None:
+        return Cipher(algorithms.AES(key), modes.ECB()).decryptor().update(block)
+    if _PyCryptoAES is not None:
+        return _PyCryptoAES.new(key, _PyCryptoAES.MODE_ECB).decrypt(block)
     keys = _expand(key)
     state = [a ^ b for a, b in zip(block, keys[10])]
     for r in range(9, -1, -1):
@@ -120,6 +130,14 @@ def aes_ctr_xor(key: bytes, iv: bytes, data: bytes, offset: int = 0) -> bytes:
         padded = (b'\0' * skip) + data
         stream = Cipher(algorithms.AES(key), modes.CTR(start.to_bytes(16, 'big'))).encryptor().update(padded)
         return stream[skip:]
+    if _PyCryptoAES is not None and data:
+        start = base + offset // 16
+        skip = offset % 16
+        cipher = _PyCryptoAES.new(key, _PyCryptoAES.MODE_ECB)
+        padded = (b'\0' * skip) + data
+        # ECB-generated counter stream, retaining the dependency-free CTR semantics.
+        stream = b''.join(cipher.encrypt((start + i).to_bytes(16, 'big')) for i in range((len(padded) + 15) // 16))
+        return bytes(a ^ b for a, b in zip(padded, stream))[skip:]
     out = bytearray(len(data))
     pos = 0
     while pos < len(data):
