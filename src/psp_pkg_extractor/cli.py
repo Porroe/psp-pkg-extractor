@@ -1,12 +1,13 @@
 """Command-line interface."""
 import argparse
 import sys
+from typing import Optional
 
 from .errors import PkgError
 from .extractor import extract_pkg, inspect_pkg
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(description='Extract locally supplied retail PSP PKG files offline.')
     commands = parser.add_subparsers(dest='command', required=True)
     inspect = commands.add_parser('inspect', help='Validate and list package contents')

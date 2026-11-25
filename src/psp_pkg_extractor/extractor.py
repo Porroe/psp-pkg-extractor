@@ -5,6 +5,7 @@ from pathlib import Path
 import shutil
 import tempfile
 import uuid
+from typing import Union
 
 from .errors import ExtractionError
 from .format import PackageInfo, decrypt_at, inspect_stream, path_identity
@@ -19,7 +20,7 @@ class ExtractionResult:
     total_bytes: int
 
 
-def inspect_pkg(path: str | os.PathLike[str]) -> PackageInfo:
+def inspect_pkg(path: Union[str, os.PathLike[str]]) -> PackageInfo:
     """Validate a local package and return its headers, metadata, and entries."""
     with open(path, 'rb') as f:
         return inspect_stream(f)
@@ -44,7 +45,7 @@ def _check_destination(output: Path) -> None:
                     raise ExtractionError(f"Destination contains a link or special file: {p}")
 
 
-def extract_pkg(path: str | os.PathLike[str], output: str | os.PathLike[str], *, force: bool = False,
+def extract_pkg(path: Union[str, os.PathLike[str]], output: Union[str, os.PathLike[str]], *, force: bool = False,
                 format: str = "tree") -> ExtractionResult:
     """Extract transport-decrypted bytes; preserve inner encrypted payloads.
 

@@ -5,6 +5,7 @@ import re
 import struct
 import unicodedata
 from typing import BinaryIO
+from typing import Optional
 
 from .crypto import PSP_KEY, PS3_KEY, aes_ctr_xor
 from .errors import InvalidPackageError, UnsupportedPackageError
@@ -76,7 +77,7 @@ class Item:
 class PackageInfo:
     content_id: str
     package_type: str
-    title_id: str | None
+    title_id: Optional[str]
     header: Header
     metadata: tuple[Metadata, ...]
     items: tuple[Item, ...]

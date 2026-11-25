@@ -1,7 +1,7 @@
 # psp-pkg-extractor
 
 An offline, dependency-free Python library and CLI for extracting files from
-locally supplied retail Sony PSP and PSP Minis PKG containers. Python 3.10+
+locally supplied retail Sony PSP and PSP Minis PKG containers. Python 3.9+
 (including 3.15) is supported. It never downloads packages, contacts PSN,
 executes extracted files, or generates licenses. Use only packages you own and
 have the right to extract.
@@ -138,7 +138,7 @@ keys, nonzero table offsets, flags, traversal, collisions, truncated/invalid
 ranges, overwrite rules, rollback, and CLI behavior. No owned/copyrighted PKG
 files are included. Set `PSP_PKG_FIXTURES` to run local SHA-256 integration
 checks; see [fixtures/README.md](fixtures/README.md). GitHub Actions configures
-Linux, macOS, and Windows on Python 3.10 through 3.15. These remote jobs must
+Linux, macOS, and Windows on Python 3.9 through 3.15. These remote jobs must
 run in GitHub; a local test run does not establish results for every platform.
 
 ## Attribution

@@ -6,6 +6,7 @@ be tested independently against the upstream implementation.
 """
 from dataclasses import dataclass
 import struct
+from typing import Optional
 
 from .crypto import aes128_decrypt_block, aes128_encrypt_block
 from .errors import InvalidPackageError, UnsupportedPackageError
@@ -305,7 +306,7 @@ def eboot_to_iso(data: bytes) -> bytes:
     return bytes(out)
 
 
-def sfo_title(data: bytes) -> str | None:
+def sfo_title(data: bytes) -> Optional[str]:
     """Read the TITLE string from a PARAM.SFO without external dependencies."""
     if len(data) < 20 or data[:4] != b'\0PSF':
         return None
